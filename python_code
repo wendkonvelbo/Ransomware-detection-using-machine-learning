@@ -1,0 +1,112 @@
+# Wendkonvelbo
+from IPython import get_ipython
+from IPython.display import display
+import pandas as pd
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, confusion_matrix
+import matplotlib.pyplot as plt
+from mlxtend.plotting import plot_confusion_matrix
+from sklearn.preprocessing import StandardScaler
+
+
+# Step 1: Load your ransomware dataset
+df = pd.read_csv("/content/data_file.csv") 
+
+# Step 2: Drop irrelevant columns 
+cols_to_drop = ['FileName', 'md5Hash']  
+df = df.drop(columns=cols_to_drop)
+
+# Step 3: Encode categorical variables to numeric
+categorical_cols = df.select_dtypes(include=['object']).columns
+for col in categorical_cols:
+    df[col] = df[col].astype('category')
+    df[col] = df[col].cat.codes 
+
+# Step 4: Define features (X) and target (Y)
+X = df.iloc[:, :-1].values  
+Y = df.iloc[:, -1].values   
+
+# Step 5: Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=0)
+
+# Initialize classifiers
+rf = RandomForestClassifier(n_estimators=100, random_state=0)
+lr = LogisticRegression(random_state=0)
+
+# Step 6: Cross-validation for Random Forest
+rf_cross_val_scores = cross_val_score(rf, X, Y, cv=5)
+print("Random Forest Cross-Validation Scores:", rf_cross_val_scores)
+print("Mean Accuracy:", rf_cross_val_scores.mean())
+
+# Step 7: Train and evaluate Random Forest
+rf.fit(X_train, y_train)
+y_pred_rf = rf.predict(X_test)
+print("Random Forest Confusion Matrix:")
+cm_rf = confusion_matrix(y_test, y_pred_rf)
+print(cm_rf)
+print("\nRandom Forest Classification Report:")
+print(classification_report(y_test, y_pred_rf))
+# Plot confusion matrix
+fig, ax = plot_confusion_matrix(conf_mat=cm_rf, figsize=(6, 6), cmap=plt.cm.Greens)
+plt.xlabel('Predictions', fontsize=18)
+plt.ylabel('Actuals', fontsize=18)
+plt.title('Random Forest Confusion Matrix', fontsize=18)
+plt.show()
+
+# Step 8: Cross-validation for Gradient Boosting Machines (GBM)
+gbm = GradientBoostingClassifier(random_state=0)
+gbm_cross_val_scores = cross_val_score(gbm, X, Y, cv=5)
+print("Gradient Boosting Machines (GBM) Cross-Validation Scores:", gbm_cross_val_scores)
+print("Mean Accuracy:", gbm_cross_val_scores.mean())
+
+# Step 9: Train and evaluate GBM
+gbm.fit(X_train, y_train)
+y_pred_gbm = gbm.predict(X_test)
+print("Gradient Boosting Machines (GBM) Confusion Matrix:")
+cm_gbm = confusion_matrix(y_test, y_pred_gbm)
+print(cm_gbm)
+print("\nGBM Classification Report:")
+print(classification_report(y_test, y_pred_gbm))
+# Plot confusion matrix
+fig, ax = plot_confusion_matrix(conf_mat=cm_gbm, figsize=(6, 6), cmap=plt.cm.Greens)
+plt.xlabel('Predictions', fontsize=18)
+plt.ylabel('Actuals', fontsize=18)
+plt.title('GBM Confusion Matrix', fontsize=18)
+plt.show()
+
+# Step 10: Cross-validation for Logistic Regression
+lr = LogisticRegression(max_iter=1000, solver='liblinear')
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X) 
+lr_cross_val_scores = cross_val_score(lr, X_scaled, Y, cv=5)
+print("Cross-Validation Scores:", lr_cross_val_scores)
+print("Mean Score:", lr_cross_val_scores.mean())
+
+# Step 11: Train and evaluate Logistic Regression
+lr.fit(X_train, y_train)
+y_pred_lr = lr.predict(X_test)
+print("Logistic Regression Confusion Matrix:")
+cm_lr = confusion_matrix(y_test, y_pred_lr)
+print(cm_lr)
+print("\nLogistic Regression Classification Report:")
+print(classification_report(y_test, y_pred_lr))
+# Plot confusion matrix
+fig, ax = plot_confusion_matrix(conf_mat=cm_lr, figsize=(6, 6), cmap=plt.cm.Greens)
+plt.xlabel('Predictions', fontsize=18)
+plt.ylabel('Actuals', fontsize=18)
+plt.title('Logistic Regression Confusion Matrix', fontsize=18)
+plt.show()
+
+# Step 12: Visualization of Cross-Validation Scores
+labels = ['Random Forest', 'GBM', 'Logistic Regression']
+mean_cv_scores = [rf_cross_val_scores.mean(), gbm_cross_val_scores.mean(), lr_cross_val_scores.mean()]
+plt.figure(figsize=(10, 6))
+plt.bar(labels, mean_cv_scores, color=['blue', 'orange', 'green'])
+plt.ylabel('Mean Cross-Validation Score')
+plt.title('Mean Cross-Validation Scores for Each Classifier')
+plt.ylim(0, 1) 
+plt.axhline(y=0.995, color='red', linestyle='--', label='Target Score (0.995)')
+plt.legend()
+plt.show()
